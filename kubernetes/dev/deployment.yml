@@ -1,0 +1,117 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $app
+  namespace: $app-ns
+  labels:
+    app: $app
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: $app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: $app
+    spec:
+      hostAliases:
+        - hostnames:
+          - "ph01ab8.ph.sunlife"
+          ip: "10.152.156.15"
+      volumes:
+        - name: $app-secret
+          secret:
+            secretName: $app-secret
+        - name: $name-volume
+          hostPath:
+            path: /var/log/docker/apps/$app
+        - name: api-light-config-volume
+          configMap:
+           name: api-light-config
+        - name: light-logback-volume
+          configMap:
+           name: light-logback
+      imagePullSecrets:
+        - name: regcred
+      nodeSelector:
+        com.docker.ucp.collection.shared: "true"
+        com.sunlife.node.organization: "ascp"
+        com.sunlife.node.environment: "nonprod"
+        com.sunlife.node.owner: "de_asia_api_hub"
+        com.sunlife.node.cloud: "true"
+      containers:
+      - image: sv516070.ph.sunlife:8081/sunlife-docker/light-proxy:$light4j-version
+        imagePullPolicy: Always
+        name: light-proxy
+        ports:
+          - containerPort: 8080
+        resources:
+          limits:
+            memory: "256Mi"
+        volumeMounts:
+          - name: api-light-config-volume
+            mountPath: /config
+          - name: $name-volume
+            mountPath: "/home/default/log"
+          - name: light-logback-volume
+            mountPath: /logback.xml
+            subPath: logback.xml
+        env:
+        - name: JAVA_OPTS
+          value: -Xms128m -Xmx256m
+        - name: TZ
+          value: Asia/Hong_Kong
+      - image: $image:$version
+        imagePullPolicy: IfNotPresent
+        name: $name
+        ports:
+          - containerPort: 9000
+        resources:
+          limits:
+            memory: "512Mi"
+        volumeMounts:
+          - name: $app-secret
+            mountPath: "/run/secrets/$app-secret"
+            readOnly: true
+          - name: $name-volume
+            mountPath: "/apps/logs"
+        env:
+        - name: JAVA_OPTS
+          value: -Xms128m -Xmx512m
+        - name: SERVER_PORT
+          value: "9000"
+        - name: SERVER_SERVLET_CONTEXT_PATH
+          value: /java-template
+        - name: VERSION
+          value: "1"
+        # Proxy
+        - name: PROXY_HOST
+          value: ph01ab8.ph.sunlife
+        - name: PROXY_PORT
+          value: "8080"
+        # Okta
+        # Replace this with token endpoint of the Okta to be used
+        - name: OKTA_TOKEN_URL
+          value: https://sunlifeasiaapi.oktapreview.com/oauth2/aus13ed8ugC9EVGoS1d7/v1/token
+        # Replace this with client ID of the API as consumer app in Okta
+        - name: OKTA_CONSUMER_CLIENT_ID
+          value: 0oa145h42ybUGFFp81d7
+        - name: OKTA_EMAILSERVICE_SCOPE
+          value: apiplatform.asia.emailservice.email.read
+        # Email Service URL should be in format - http://<servicename>.<namespace>/<basepath>/<endpoint>
+        - name: EMAILSERVICE_URL
+          value: http://dev-email-svc.dev-email-svc-ns/email/health
+        # Secrets
+        - name: OKTA_CONSUMER_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: $app-secret
+              key: OKTA_CONSUMER_CLIENT_SECRET

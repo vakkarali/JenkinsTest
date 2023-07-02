@@ -1,0 +1,32 @@
+---
+#proxy.yml
+proxy.apiId: '0300'
+
+#server.yml
+server.environment: uat-proxy
+server.serviceId: k8-baseproject
+server.maxTransferFileSize: 52428800
+
+#client.yml
+client.oauth.token.key.server_url: https://sunlifeapi.oktapreview.com
+client.oauth.token.key.uri: /oauth2/ausnz427iV1cn6CZg1d6/v1/keys
+client.oauth.token.proxyHost: ph01ab8.ph.sunlife
+client.oauth.token.proxyPort: 8080
+
+#body.yml
+body.enabled: true
+body.maxBuffers: 56623104
+
+#handler.yml
+handler.basePath: /java-template
+
+#sanitizer.yml
+sanitizer.enabled: true
+sanitizer.bodyEnabled: false
+sanitizer.headerEnabled: true
+sanitizer.headerEncoder: html-content
+
+#limit.yml
+limit.enabled: true
+limit.errorCode: 429
+limit.rateLimit: 100/s

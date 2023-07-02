@@ -1,0 +1,29 @@
+---
+# Reverse Proxy Handler Configuration
+
+# If TLS is enabled when connecting to the target servers
+httpsEnabled: ${proxy.httpsEnabled:false}
+
+# Target URIs
+hosts: ${proxy.httpsEnabled:http://localhost:9000}
+#,http://localhost:8082,http://localhost:8083
+
+# Connections per thread to the target servers
+connectionsPerThread: ${proxy.connectionsPerThread:20}
+
+# Max request time in milliseconds before timeout
+maxRequestTime: ${proxy.maxRequestTime:200000}
+
+# Rewrite Host Header with the target host and port and write X_FORWARDED_HOST with original host
+rewriteHostHeader: false
+
+# Reuse XForwarded for the target XForwarded header
+reuseXForwarded: false
+
+# Max Connection Retries
+maxConnectionRetries: 3
+
+# Decode the the JWT token claims and foward to the backend api in the form of json string
+forwardJwtClaims: ${proxy.forwardJwtClaims:false}
+...
+

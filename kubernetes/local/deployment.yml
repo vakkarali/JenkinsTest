@@ -1,0 +1,83 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  labels:
+    app: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+    spec:
+      hostAliases:
+        - hostnames:
+          - "ph01ab8.ph.sunlife"
+          ip: "10.152.156.15"
+      volumes:
+        - name: name-volume
+          hostPath:
+            path: /apps/logs/app
+        - name: api-light-config-volume
+          configMap:
+           name: api-light-config
+        - name: light-logback-volume
+          configMap:
+           name: light-logback
+      imagePullSecrets:
+        - name: regcred
+      containers:
+      - image: prod-dtr-ca.sunlifecorp.com/eadpapiops/light-proxy:2.4.0
+        name: light-proxy
+        ports:
+          - containerPort: 8080
+        resources:
+          limits:
+            memory: "256Mi"
+        volumeMounts:
+          - name: api-light-config-volume
+            mountPath: /config
+          - name: light-logback-volume
+            mountPath: /logback.xml
+            subPath: logback.xml
+        env:
+        - name: JAVA_OPTS
+          value: -Xms128m -Xmx128m
+        - name: TZ
+          value: Asia/Hong_Kong
+      - image: vakkardemo:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: name
+        ports: 
+          - containerPort: 9000
+        resources:
+          limits:
+            memory: "768Mi"
+        volumeMounts:
+          - name: name-volume
+            mountPath: "/apps/logs"
+        env:
+        - name: JAVA_OPTS
+          value: -Xms256m -Xmx768m
+        - name: SERVER_PORT
+          value: "9000"
+        - name: SERVER_SERVLET_CONTEXT_PATH
+          value: /vakkardemo
+        - name: VERSION
+          value: "1"
+        - name: OKTA_TOKEN_URL
+          value: https://sunlifeasiaapi.oktapreview.com/oauth2/aus13ed8ugC9EVGoS1d7/v1/token
+        - name: OKTA_CONSUMER_CLIENT_ID
+          value: 0oa145h42ybUGFFp81d7
+        - name: OKTA_EMAILSERVICE_SCOPE
+          value: apiplatform.asia.emailservice.email.read
+        - name: EMAILSERVICE_URL
+          value: http://sv85041.sunlifecorp.com:34080/dev-email/health
+        # Secrets
+        - name: OKTA_CONSUMER_CLIENT_SECRET
+          value: 
